@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Search, X } from 'lucide-react';
+import { Subreddit } from '@/types';
 
 // Mock data for subreddits
 const mockSubreddits = [
@@ -12,11 +13,6 @@ const mockSubreddits = [
   { name: 'saas', members: 120000 },
   { name: 'productivity', members: 890000 },
 ];
-
-interface Subreddit {
-  name: string;
-  members: number;
-}
 
 interface SubredditSelectionStepProps {
   selectedSubreddits: Subreddit[];
@@ -37,7 +33,7 @@ export default function SubredditSelectionStep({
           subreddit.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
           !selectedSubreddits.find((s) => s.name === subreddit.name)
       );
-      setSuggestions(filtered);
+      setSuggestions(filtered as Subreddit[]);
     } else {
       setSuggestions([]);
     }
@@ -60,6 +56,31 @@ export default function SubredditSelectionStep({
     onChange(newSelected, totalReach);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchTerm.trim()) {
+      e.preventDefault();
+      
+      // Remove 'r/' if it exists and clean up the input
+      const subredditName = searchTerm.trim().replace(/^r\//, '').toLowerCase();
+      
+      // Check if already selected
+      if (selectedSubreddits.some(s => s.name.toLowerCase() === subredditName)) {
+        return;
+      }
+
+      // Create new subreddit with default members
+      const newSubreddit: Subreddit = {
+        name: subredditName,
+        members: 100000, // Default member count for manually added subreddits
+        replyRate: 0,
+        messagesSent: 0,
+        replies: 0,
+      };
+
+      handleSelectSubreddit(newSubreddit);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -67,12 +88,15 @@ export default function SubredditSelectionStep({
         <p className="text-gray-400">
           Choose the subreddits where you want to find potential customers.
         </p>
+        <p className="text-gray-400 mt-2">
+          <span className="text-[#FF4500]">Tip:</span> Type one subreddit at a time (e.g., r/Entrepreneur) and press Enter to add it
+        </p>
       </div>
 
       <div className="space-y-4">
         <div className="relative">
           <Label htmlFor="subreddit-search" className="text-gray-200">
-            Search Subreddits
+            Search or Enter Subreddits
           </Label>
           <div className="relative mt-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
@@ -80,7 +104,8 @@ export default function SubredditSelectionStep({
               id="subreddit-search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Type to search subreddits..."
+              onKeyDown={handleKeyDown}
+              placeholder="Type subreddit name and press Enter..."
               className="pl-10 bg-[#1A1A1B] border-[#343536] text-white placeholder:text-gray-500"
             />
           </div>

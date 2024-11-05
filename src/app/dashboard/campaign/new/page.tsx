@@ -11,20 +11,10 @@ import { Button } from '@/components/ui/button';
 import { addDoc, collection } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/firebase/config';
+import { CampaignData } from '@/types';
 
 // Define the Subreddit interface
-interface Subreddit {
-  name: string;
-  members: number;
-}
 
-// Define the CampaignData interface
-interface CampaignData {
-  name: string;
-  subreddits: Subreddit[];
-  message: string;
-  totalReach: number;
-}
 
 export default function NewCampaign() {
   const router = useRouter();
@@ -33,9 +23,22 @@ export default function NewCampaign() {
   // Initialize campaignData with the defined type
   const [campaignData, setCampaignData] = useState<CampaignData>({
     name: '',
+    status: 'paused',
+    stats: {
+      messagesSent: 0,
+      replies: 0,
+      replyRate: 0,
+      totalReach: 0,
+      remainingMessages: 0,
+      positiveResponses: 0,
+      negativeResponses: 0,
+      neutralResponses: 0,
+    },
     subreddits: [],
-    message: '',
     totalReach: 0,
+    lastActive: new Date().toISOString(),
+    dailyLimit: 100,
+    messageTemplate: '',
   });
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -83,7 +86,10 @@ export default function NewCampaign() {
 
   // Update function with the correct type
   const updateCampaignData = (data: Partial<CampaignData>) => {
-    setCampaignData({ ...campaignData, ...data });
+    setCampaignData((prevData) => ({
+      ...prevData,
+      ...data,
+    }));
   };
 
   return (
@@ -134,14 +140,14 @@ export default function NewCampaign() {
             <SubredditSelectionStep
               selectedSubreddits={campaignData.subreddits}
               onChange={(subreddits, totalReach) =>
-                updateCampaignData({ subreddits, totalReach })
+                    updateCampaignData({ subreddits, totalReach })
               }
             />
           )}
           {currentStep === 3 && (
             <MessageCompositionStep
-              value={campaignData.message}
-              onChange={(message) => updateCampaignData({ message })}
+              value={campaignData.messageTemplate}
+              onChange={(messageTemplate) => updateCampaignData({ messageTemplate })}
             />
           )}
           {currentStep === 4 && (
@@ -166,7 +172,7 @@ export default function NewCampaign() {
                 disabled={
                   (currentStep === 1 && !campaignData.name) ||
                   (currentStep === 2 && campaignData.subreddits.length === 0) ||
-                  (currentStep === 3 && !campaignData.message)
+                  (currentStep === 3 && !campaignData.messageTemplate)
                 }
               >
                 Next

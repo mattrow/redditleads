@@ -8,11 +8,12 @@ import { useEffect, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/firebase/config';
+import { CampaignData, Subreddit } from '@/types';
 
 export default function Dashboard() {
   const router = useRouter();
   const { user } = useAuth();
-  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [campaigns, setCampaigns] = useState<CampaignData[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -21,10 +22,19 @@ export default function Dashboard() {
       try {
         const campaignsRef = collection(db, `users/${user.uid}/campaigns`);
         const querySnapshot = await getDocs(campaignsRef);
-        const campaignsData = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        const campaignsData = querySnapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            stats: {
+              messagesSent: 0,
+              replies: 0,
+              replyRate: 0,
+              ...data.stats,
+            },
+          } as CampaignData;
+        });
         setCampaigns(campaignsData);
       } catch (error) {
         console.error('Error fetching campaigns:', error);
@@ -70,12 +80,12 @@ export default function Dashboard() {
                     <h3 className="text-lg font-medium text-white">{campaign.name}</h3>
                     <span
                       className={`px-3 py-1 rounded-full text-sm ${
-                        campaign.status === 'active'
+                        campaign.status === 'running'
                           ? 'bg-green-500/10 text-green-500'
                           : 'bg-yellow-500/10 text-yellow-500'
                       }`}
                     >
-                      {campaign.status === 'active' ? 'Active' : 'Paused'}
+                      {campaign.status === 'running' ? 'Active' : 'Paused'}
                     </span>
                   </div>
                   <span className="text-sm text-gray-400">
@@ -88,7 +98,7 @@ export default function Dashboard() {
                     <MessageSquare className="w-5 h-5 text-[#FF4500]" />
                     <div>
                       <div className="text-white font-medium">
-                        {campaign.messagesSent.toLocaleString()}
+                        {campaign.stats.messagesSent.toLocaleString()}
                       </div>
                       <div className="text-sm text-gray-400">Messages Sent</div>
                     </div>
@@ -98,7 +108,7 @@ export default function Dashboard() {
                     <Users className="w-5 h-5 text-green-500" />
                     <div>
                       <div className="text-white font-medium">
-                        {campaign.replies.toLocaleString()}
+                        {campaign.stats.replies.toLocaleString()}
                       </div>
                       <div className="text-sm text-gray-400">Replies</div>
                     </div>
@@ -107,19 +117,21 @@ export default function Dashboard() {
                   <div className="flex items-center gap-3">
                     <BarChart3 className="w-5 h-5 text-blue-500" />
                     <div>
-                      <div className="text-white font-medium">{campaign.replyRate}%</div>
+                      <div className="text-white font-medium">
+                        {campaign.stats.replyRate}%
+                      </div>
                       <div className="text-sm text-gray-400">Reply Rate</div>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-4 flex items-center gap-2">
-                  {campaign.subreddits.map((subreddit: string) => (
+                  {campaign.subreddits.map((subreddit: Subreddit) => (
                     <span
-                      key={subreddit}
+                      key={subreddit.name}
                       className="px-2 py-1 bg-[#1A1A1B] rounded text-sm text-gray-400"
                     >
-                      r/{subreddit}
+                      r/{subreddit.name}
                     </span>
                   ))}
                 </div>

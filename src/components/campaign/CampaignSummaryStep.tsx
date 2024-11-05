@@ -1,12 +1,8 @@
 import React from 'react';
+import { CampaignData } from '@/types';
 
 interface CampaignSummaryStepProps {
-  campaignData: {
-    name: string;
-    subreddits: Array<{ name: string; members: number }>;
-    message: string;
-    totalReach: number;
-  };
+  campaignData: CampaignData;
 }
 
 export default function CampaignSummaryStep({
@@ -59,7 +55,7 @@ export default function CampaignSummaryStep({
         <div className="bg-[#1A1A1B] rounded-lg p-4 border border-[#343536]">
           <h3 className="text-sm font-medium text-gray-400 mb-2">Message Preview</h3>
           <div className="bg-[#242526] rounded p-4 whitespace-pre-wrap text-white">
-            {campaignData.message}
+            {campaignData.messageTemplate}
           </div>
         </div>
       </div>
