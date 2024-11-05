@@ -1,212 +1,39 @@
-@import './styles/satoshi.css';
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@keyframes grow-shrink {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+/* Custom Animations */
+.animate-in {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
 }
 
-@keyframes bounce-down {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(5px); }
-}
-
-.animate-grow-shrink {
-  animation: grow-shrink 2s ease-in-out infinite;
-}
-
-.animate-bounce-down {
-  animation: bounce-down 1.5s infinite;
-}
-
-@keyframes bounce-up {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-
-.animate-bounce-up {
-  animation: bounce-up 1.5s infinite;
-}
-
-:root {
-  --primary: 222 84% 55%;
-  --primary-foreground: 210 40% 98%;
-  
-  --background: 0 0% 100%;
-  --foreground: 222 47% 11%;
-  
-  --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  
-  --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
-  
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222 47% 11%;
-  
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222 47% 11%;
-  
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 222 84% 55%;
-
-  --radius: 0.5rem;
-}
-
-.hero-section {
-  position: relative;
-  min-height: 70vh;
-  width: 100%;
-  padding-bottom: 4rem;
-  padding-top: 0;
-  isolation: isolate;
-}
-
-.gradient-text {
-  @apply bg-clip-text text-transparent;
-}
-
-.fade-enter {
-  opacity: 0;
-}
-
-.fade-enter-active {
-  opacity: 1;
-  transition: opacity 500ms ease-in-out;
-}
-
-.fade-exit {
-  opacity: 1;
-}
-
-.fade-exit-active {
-  opacity: 0;
-  transition: opacity 500ms ease-in-out;
-}
-
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes float-slow {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-20px);
-  }
-}
-
-@keyframes glow {
-  0%, 100% {
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
-  }
-  50% {
-    text-shadow: 0 0 40px rgba(255, 255, 255, 0.8);
-  }
-}
-
-@keyframes slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(-100px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.animate-fade-in-up {
-  animation: fade-in-up 0.6s ease-out forwards;
-}
-
-.animate-float-slow {
-  animation: float-slow 6s ease-in-out infinite;
-}
-
-.animate-glow {
-  animation: glow 2s ease-in-out infinite;
-}
-
-.animate-slide-in {
-  animation: slide-in 0.6s ease-out forwards;
-}
-
-[data-animate] {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: all 0.6s ease-out;
-}
-
-[data-animate].animate-visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.delay-100 {
-  animation-delay: 100ms;
-}
-
-.delay-200 {
-  animation-delay: 200ms;
-}
-
-.delay-300 {
-  animation-delay: 300ms;
-}
-
-.delay-400 {
-  animation-delay: 400ms;
-}
-
-.delay-500 {
-  animation-delay: 500ms;
-}
-
-.delay-700 {
-  animation-delay: 700ms;
-}
-
-.highlight-word {
-  @apply relative inline-block;
-}
-
-.highlight-word::after {
-  content: '';
-  @apply absolute -bottom-1 left-0 w-full h-0.5 bg-white transform scale-x-0 transition-transform duration-300 origin-bottom-right;
-}
-
-.highlight-word:hover::after {
-  @apply scale-x-100 origin-bottom-left;
-}
-
-@keyframes shimmer {
+@keyframes float {
   0% {
-    background-position: 200% 0;
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
   }
   100% {
-    background-position: -200% 0;
+    transform: translateY(0px);
   }
 }
 
-.animate-shimmer {
-  animation: shimmer 2s infinite linear;
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 69, 0, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 69, 0, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 69, 0, 0);
+  }
+}
+
+@layer utilities {
+  .bg-gradient-radial {
+    background-image: radial-gradient(var(--tw-gradient-stops));
+  }
 }
