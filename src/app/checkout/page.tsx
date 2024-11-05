@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import Pricing from '@/components/Pricing';
-import Navigation from '@/components/ui/PublicNavigation';
+import { Navbar } from '@/components/Navbar';
 import { loadStripe } from '@stripe/stripe-js';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -60,7 +60,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#396afc] to-[#2948ff]">
-      <Navigation isAuthenticated={!!user} />
+      <Navbar />
       <div className="flex items-center justify-center min-h-screen">
         <div className="w-full">
           <Pricing

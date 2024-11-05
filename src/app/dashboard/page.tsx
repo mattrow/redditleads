@@ -1,175 +1,132 @@
 'use client';
-import { useAuth } from '../../hooks/useAuth';
-import { auth } from '@/firebase/config';
-import { useRouter, usePathname } from 'next/navigation';
+
+import { useRouter } from 'next/navigation';
+import { Plus, BarChart3, MessageSquare, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import Sidebar from '@/components/dashboard/Sidebar';
 import { useEffect, useState } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
-import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Flame } from 'lucide-react'
-import Link from 'next/link'
-import Navigation from '@/components/ui/Navigation'
-// import Pricing from '@/components/Pricing';
-import Footer from '@/components/ui/Footer';
-import Sidebar from '@/components/ui/Sidebar'
-import DashboardHome from '@/components/dashboard/DashboardHome';
-import AddStudentForm from '@/components/dashboard/AddStudentForm';
-import StudentProfile from '@/components/student-profile/StudentProfile';
-// import LessonView from '@/components/LessonView/LessonView';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import LessonPage from '@/components/LessonView/LessonPage';
-import SuggestionsPage from '@/components/dashboard/SuggestionsPage';
-import { analytics } from '@/firebase/config';
-import { logEvent } from 'firebase/analytics';
+import { collection, getDocs } from 'firebase/firestore';
+import { useAuth } from '@/hooks/useAuth';
+import { db } from '@/firebase/config';
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY as string);
-
-export default function DashboardPage() {
-  const { user, loading: authLoading } = useAuth();
-  const [role, setRole] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [dataFetched, setDataFetched] = useState(false);
+export default function Dashboard() {
   const router = useRouter();
-  const pathname = usePathname();
-
-  const getFirebaseToken = async () => {
-    try {
-      if (!user) {
-        console.log('❌ No user found');
-        return null;
-      }
-      const token = await user.getIdToken(true);
-      return token;
-    } catch (error) {
-      console.error("🚨 Error getting Firebase token:", error);
-      return null;
-    }
-  };
-
-  const handleUpgrade = async (priceId: string) => {
-    setIsLoading(true);
-    try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        body: JSON.stringify({ 
-          priceId: priceId,
-          metadata: {
-            userId: user?.uid,
-            role: 'Pro User',
-          },
-        }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      const data = await res.json();
-      const stripe = await stripePromise;
-      await stripe?.redirectToCheckout({ sessionId: data.sessionId });
-    } catch (error) {
-      console.error('Checkout error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { user } = useAuth();
+  const [campaigns, setCampaigns] = useState<any[]>([]);
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const isSuccess = urlParams.get('success');
-    
-    if (isSuccess === 'true') {
-      router.replace('/dashboard');
-      if (user) {
-        setTimeout(() => {
-          fetchUserData();
-        }, 2000);
-      }
-    }
-  }, [user, router]);
+    if (!user) return;
 
-  useEffect(() => {
-    if (user) {
-      fetchUserData();
-    }
+    const fetchCampaigns = async () => {
+      try {
+        const campaignsRef = collection(db, `users/${user.uid}/campaigns`);
+        const querySnapshot = await getDocs(campaignsRef);
+        const campaignsData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setCampaigns(campaignsData);
+      } catch (error) {
+        console.error('Error fetching campaigns:', error);
+      }
+    };
+
+    fetchCampaigns();
   }, [user]);
 
-  const fetchUserData = async () => {
-    setIsLoading(true);
-    try {
-      if (!user) return;
-
-      const token = await getFirebaseToken();
-      if (!token) return;
-
-      const checkRes = await fetch('/api/user/check', {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+  return (
+    <div className="flex min-h-screen bg-[#1A1A1B]">
+      <Sidebar />
       
-      if (!checkRes.ok) {
-        throw new Error(`User check failed: ${checkRes.status}`);
-      }
-      
-      const checkData = await checkRes.json();
-      setRole(checkData.userData?.role || 'Free User');
-      setDataFetched(true);
-
-    } catch (error) {
-      console.error('❌ Error in fetchUserData:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (analytics) {
-      logEvent(analytics, 'purchase', {
-        transaction_id: 'subscription_' + user?.uid,
-        value: 29.99, // Replace with actual price
-        currency: 'USD',
-        items: [
-          {
-            item_id: 'pro_subscription',
-            item_name: 'Pro Subscription',
-          },
-        ],
-      });
-    }
-  }, [analytics]);
-
-  const renderContent = () => {
-    if (authLoading || isLoading || !dataFetched) {
-      return (
-        <div className="flex">
-          <Sidebar />
-          <div className="ml-64 w-full">
-            <LoadingSpinner />
+      <main className="flex-1 ml-64">
+        {/* Header */}
+        <div className="bg-[#242526] border-b border-[#343536] px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-white">Campaigns</h1>
+              <p className="text-gray-400 mt-1">Manage and monitor your active campaigns</p>
+            </div>
+            <Button
+              onClick={() => router.push('/dashboard/campaign/new')}
+              className="bg-[#FF4500] hover:bg-[#FF5722] text-white flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              New Campaign
+            </Button>
           </div>
         </div>
-      );
-    }
 
-    if (!user) {
-      router.push('/login');
-      return null;
-    }
+        {/* Campaign List */}
+        <div className="p-8">
+          <div className="grid gap-4">
+            {campaigns.map((campaign) => (
+              <button
+                key={campaign.id}
+                onClick={() => router.push(`/dashboard/campaign/${campaign.id}`)}
+                className="bg-[#242526] border border-[#343536] rounded-xl p-6 text-left hover:border-[#FF4500]/50 transition-colors"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-lg font-medium text-white">{campaign.name}</h3>
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm ${
+                        campaign.status === 'active'
+                          ? 'bg-green-500/10 text-green-500'
+                          : 'bg-yellow-500/10 text-yellow-500'
+                      }`}
+                    >
+                      {campaign.status === 'active' ? 'Active' : 'Paused'}
+                    </span>
+                  </div>
+                  <span className="text-sm text-gray-400">
+                    Last active: {new Date(campaign.lastActive).toLocaleDateString()}
+                  </span>
+                </div>
 
-    return (
-      <div className="flex">
-        <Sidebar />
-        <div className="ml-64 w-full">
-          <DashboardHome 
-            onAddStudent={() => router.push('/dashboard/add-student')}
-          />
+                <div className="grid grid-cols-3 gap-8">
+                  <div className="flex items-center gap-3">
+                    <MessageSquare className="w-5 h-5 text-[#FF4500]" />
+                    <div>
+                      <div className="text-white font-medium">
+                        {campaign.messagesSent.toLocaleString()}
+                      </div>
+                      <div className="text-sm text-gray-400">Messages Sent</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Users className="w-5 h-5 text-green-500" />
+                    <div>
+                      <div className="text-white font-medium">
+                        {campaign.replies.toLocaleString()}
+                      </div>
+                      <div className="text-sm text-gray-400">Replies</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <BarChart3 className="w-5 h-5 text-blue-500" />
+                    <div>
+                      <div className="text-white font-medium">{campaign.replyRate}%</div>
+                      <div className="text-sm text-gray-400">Reply Rate</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex items-center gap-2">
+                  {campaign.subreddits.map((subreddit: string) => (
+                    <span
+                      key={subreddit}
+                      className="px-2 py-1 bg-[#1A1A1B] rounded text-sm text-gray-400"
+                    >
+                      r/{subreddit}
+                    </span>
+                  ))}
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="min-h-screen bg-[#f8f9fc] flex flex-col">
-      <main className="flex-grow">
-        {renderContent()}
       </main>
     </div>
   );

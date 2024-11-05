@@ -16,6 +16,7 @@ import {
 import { Navbar } from '@/components/Navbar';
 import { ComparisonSection } from '@/components/ComparisonSection';
 import { TestimonialSection } from '@/components/TestimonialSection';
+import Link from 'next/link';
 
 export default function HomePage() {
   useEffect(() => {
@@ -46,20 +47,31 @@ export default function HomePage() {
             <div className="fade-in opacity-0 translate-y-4 transition-all duration-700">
               <div className="inline-flex items-center gap-2 bg-[#FF4500]/10 px-4 py-2 rounded-full text-[#FF4500] mb-6">
                 <Sparkles className="h-4 w-4" />
-                <span>Find your first customers on Reddit</span>
+                <span>Discover your audience on Reddit</span>
               </div>
-              <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-[#FF4500] to-[#FFA000] inline-block text-transparent bg-clip-text leading-tight">
-                Turn Reddit Users Into Your Best Customers
+              <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
+                Turn <span className="text-[#FF4500]">Reddit Users</span> Into Your{' '}
+                <span className="relative">
+                  <span className="absolute inset-0 bg-gradient-to-r from-[#FF4500] to-[#FF7A45] blur-sm opacity-50"></span>
+                  <span className="relative bg-gradient-to-r from-[#FF4500] to-[#FF7A45] inline-block text-transparent bg-clip-text">
+                    Most Valuable
+                  </span>
+                </span>{' '}
+                Customers
               </h1>
               <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto leading-relaxed">
-                Connect with real users, get instant feedback, and validate your ideas. Target
-                specific subreddits to find the perfect audience for your product.
+                Connect with <span className="text-white font-medium">real users</span>, get{' '}
+                <span className="text-white font-medium">instant feedback</span>, and{' '}
+                <span className="text-white font-medium">validate your ideas</span> in targeted
+                subreddits perfect for your product.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
-                <button className="bg-[#FF4500] hover:bg-[#FF5722] text-white px-8 py-4 rounded-full font-medium flex items-center gap-2 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl hover:shadow-[#FF4500]/20">
-                  Start Finding Customers
-                  <ChevronRight className="h-5 w-5" />
-                </button>
+                <Link href="/signup">
+                  <button className="bg-[#FF4500] hover:bg-[#FF5722] text-white px-8 py-4 rounded-full font-medium flex items-center gap-2 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl hover:shadow-[#FF4500]/20">
+                    Start Finding Customers
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </Link>
                 <button className="text-gray-200 hover:text-white px-8 py-4 rounded-full font-medium flex items-center gap-2 transition-colors border border-[#343536] hover:border-[#FF4500]">
                   Watch Demo
                 </button>
@@ -159,8 +171,10 @@ export default function HomePage() {
                   className="fade-in opacity-0 translate-y-4 transition-all duration-700 text-center relative"
                   style={{ transitionDelay: `${index * 200}ms` }}
                 >
-                  <div className="mb-6 transform hover:scale-110 transition-transform duration-300">
-                    <step.icon className="h-16 w-16 text-[#FF4500]" />
+                  <div className="flex justify-center mb-6">
+                    <div className="transform hover:scale-110 transition-transform duration-300">
+                      <step.icon className="h-16 w-16 text-[#FF4500]" />
+                    </div>
                   </div>
                   <h3 className="text-xl font-bold mb-2">{step.title}</h3>
                   <p className="text-gray-400">{step.description}</p>
@@ -175,28 +189,25 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Comparison Section */}
         <ComparisonSection />
-
-        {/* Testimonial Section */}
         <TestimonialSection />
 
         {/* CTA Section */}
         <section className="bg-[#242526] py-20">
           <div className="container mx-auto px-4 text-center">
-            <div className="max-w-3xl mx-auto">
-              <h2 className="text-4xl font-bold mb-6">
-                Ready to Find Your First Customers?
-              </h2>
+            <div className="max-w-3xl mx-auto fade-in">
+              <h2 className="text-4xl font-bold mb-6">Ready to Find Your First Customers? 🚀</h2>
               <p className="text-xl text-gray-400 mb-8">
-                Join hundreds of founders who are building their businesses with RedditLeads
+                Join hundreds of founders who are building their businesses with RedditLeads ✨
               </p>
-              <button className="bg-[#FF4500] hover:bg-[#FF5722] text-white px-8 py-4 rounded-full font-medium transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl hover:shadow-[#FF4500]/20 flex items-center gap-2 mx-auto">
-                Get Started Now
-                <ChevronRight className="h-5 w-5" />
-              </button>
+              <Link href="/signup">
+                <button className="bg-[#FF4500] hover:bg-[#FF5722] text-white px-8 py-4 rounded-full font-medium transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl hover:shadow-[#FF4500]/20 flex items-center gap-2 mx-auto">
+                  Get Started Now
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </Link>
               <p className="mt-4 text-gray-400">
-                No credit card required • 30-day money-back guarantee
+                No credit card required ✅ • 30-day money-back guarantee 💯
               </p>
             </div>
           </div>

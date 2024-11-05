@@ -1,13 +1,13 @@
 'use client';
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/button";
 import { Check, Shield, Zap, Users, BookOpen, MessageSquare, Brain } from "lucide-react";
 import { useState } from "react";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+// import {
+//   Accordion,
+//   AccordionContent,
+//   AccordionItem,
+//   AccordionTrigger,
+// } from "@/components/ui/accordion";
 import { loadStripe } from "@stripe/stripe-js";
 
 interface PricingProps {
@@ -139,12 +139,13 @@ export default function Pricing({ userId, userEmail, onSubscribe }: PricingProps
               <div className="text-gray-200 font-medium">&nbsp;</div>
             </div>
 
-            <Button
-              onClick={() => {/* Navigate to sign-up page */}}
+            {/* <Button
+              onClick={() => {/* Navigate to sign-up page 
               className="w-full bg-white text-[#396afc] hover:bg-white/90 py-6 px-8 text-xl rounded-2xl font-bold h-auto hover:scale-105 transition-all duration-300"
             >
               Get Started for Free
-            </Button>
+            </Button> 
+            */}
 
             <div className="space-y-4 mb-2 mt-6">
               {features.map((feature, index) => (
@@ -172,7 +173,7 @@ export default function Pricing({ userId, userEmail, onSubscribe }: PricingProps
               <div className="text-gray-200 font-medium">&nbsp;</div>
             </div>
 
-            <Button
+            {/* <Button
               onClick={() => handleSubscribe(process.env.NEXT_PUBLIC_STRIPE_PRICE_ID!)}
               disabled={isLoading}
               className="w-full bg-white text-[#396afc] hover:bg-white/90 py-6 px-8 text-xl rounded-2xl font-bold h-auto hover:scale-105 transition-all duration-300"
@@ -188,7 +189,7 @@ export default function Pricing({ userId, userEmail, onSubscribe }: PricingProps
               ) : (
                 'Upgrade to Pro'
               )}
-            </Button>
+            </Button> */}
 
             <div className="mt-2 mb-8 flex items-center justify-center gap-6 text-sm text-white/70">
               <div className="flex items-center gap-2">
@@ -220,7 +221,7 @@ export default function Pricing({ userId, userEmail, onSubscribe }: PricingProps
         {/* FAQs */}
         <div className="max-w-2xl mx-auto mt-16">
           <h3 className="text-2xl font-bold text-white mb-8 text-center">Common Questions</h3>
-          <Accordion type="single" collapsible className="space-y-4">
+          {/* <Accordion type="single" collapsible className="space-y-4">
             {faqs.map((faq, index) => (
               <AccordionItem 
                 key={index} 
@@ -235,7 +236,7 @@ export default function Pricing({ userId, userEmail, onSubscribe }: PricingProps
                 </AccordionContent>
               </AccordionItem>
             ))}
-          </Accordion>
+          </Accordion> */}
         </div>
       </div>
     </section>

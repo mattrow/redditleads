@@ -4,11 +4,11 @@ import { Star } from 'lucide-react';
 const testimonials = [
   {
     name: 'Sarah Chen',
-    role: 'Startup Founder',
+    role: 'Startup Founder 👩‍💼',
     image:
       'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150',
     content:
-      'RedditLeads helped us find our first 100 customers in just 2 weeks. The targeting capabilities are incredible!',
+      'RedditLeads helped us find our first 100 customers in just 2 weeks! 🚀 The targeting capabilities are incredible! ✨',
   },
   {
     name: 'Mark Thompson',
@@ -33,7 +33,7 @@ export function TestimonialSection() {
     <section className="py-20">
       <div className="container mx-auto px-4">
         <h2 className="text-3xl font-bold mb-12 text-center text-gray-200">
-          Trusted by Growing Businesses
+          Trusted by Growing Businesses 🌱
         </h2>
         <div className="grid md:grid-cols-3 gap-8">
           {testimonials.map((testimonial, index) => (
