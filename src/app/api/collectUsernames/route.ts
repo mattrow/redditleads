@@ -124,30 +124,63 @@ export async function POST(req: NextRequest) {
 
     console.log(`Total usernames collected: ${usernames.length}`);
 
-    // Save usernames to Firestore under the campaign document (overwrite existing)
+    // Save usernames to Firestore under the campaign document
     const usernamesRef = db
       .collection('users')
       .doc(userId)
       .collection('campaigns')
       .doc(campaignId)
       .collection('usernames')
-      .doc(subredditName);
+      .doc(subredditName)
+      .collection('users');
 
-    await usernamesRef.set({ usernames });
+    // Batch write the usernames
+    const batch = db.batch();
 
-    // Update the subreddit in the campaign to indicate usernames have been collected
-    const subredditRef = db
+    for (const username of usernames) {
+      const userDocRef = usernamesRef.doc(username);
+      batch.set(userDocRef, {
+        attempted: false,
+        messaged: false,
+        lastAttemptedAt: null,
+        lastMessagedAt: null,
+        receivedReply: false,
+      });
+    }
+
+    await batch.commit();
+
+    // Update the subreddit in the campaign to include the total usernames collected
+    const campaignRef = db
       .collection('users')
       .doc(userId)
       .collection('campaigns')
       .doc(campaignId);
 
-    await subredditRef.update({
-      subreddits: admin.firestore.FieldValue.arrayUnion({
-        name: subredditName,
-        usernamesCollected: true,
-      }),
-    });
+    // Fetch the existing campaign data
+    const campaignDoc = await campaignRef.get();
+    const campaignData = campaignDoc.data();
+
+    if (campaignData) {
+      const subreddits = campaignData.subreddits || [];
+
+      // Update the specific subreddit
+      const updatedSubreddits = subreddits.map((subreddit: any) => {
+        if (subreddit.name === subredditName) {
+          return {
+            ...subreddit,
+            usernamesCollected: true,
+            totalUsernames: usernames.length, // Store total usernames collected
+          };
+        }
+        return subreddit;
+      });
+
+      // Update the campaign document with the new subreddits data
+      await campaignRef.update({
+        subreddits: updatedSubreddits,
+      });
+    }
 
     // Mark progress as completed
     await progressRef.update({

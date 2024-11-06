@@ -22,6 +22,11 @@ import {
   updateDoc,
   onSnapshot,
   Unsubscribe,
+  collection,
+  query,
+  orderBy,
+  limit,
+  getDocs,
 } from 'firebase/firestore';
 import Sidebar from '@/components/dashboard/Sidebar';
 
@@ -31,6 +36,20 @@ import { CampaignData } from '@/types';
 // New imports for the progress modal
 import { Progress } from '@/components/ui/progress';
 import { Modal } from '@/components/ui/modal';
+
+function renderMessages(messages: any[], parentId = null) {
+  return messages
+    .filter((msg: any) => msg.parentId === parentId)
+    .map((message: any) => (
+      <div key={message.id} className="message">
+        <p>{message.body}</p>
+        <span>{new Date(message.createdAt.toDate()).toLocaleString()}</span>
+        <div className="replies">
+          {renderMessages(messages, message.id)}
+        </div>
+      </div>
+    ));
+}
 
 export default function CampaignDashboard({
   params,
@@ -51,6 +70,10 @@ export default function CampaignDashboard({
     errorMessage?: string;
   } | null>(null);
   const [showProgressModal, setShowProgressModal] = useState(false);
+
+  const [messages, setMessages] = useState<any[]>([]);
+
+  const [conversations, setConversations] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -78,11 +101,59 @@ export default function CampaignDashboard({
     fetchCampaign();
   }, [user, campaignId, router]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    const conversationsRef = collection(db, 'users', user.uid, 'conversations');
+
+    // Query conversations
+    const q = query(conversationsRef);
+
+    // Subscribe to real-time updates
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const convos = [];
+
+      for (const docSnapshot of snapshot.docs) {
+        const conversationId = docSnapshot.id;
+        const messagesRef = collection(db, 'users', user.uid, 'conversations', conversationId, 'messages');
+
+        // Query messages within the conversation
+        const messagesQuery = query(messagesRef, orderBy('createdAt', 'asc'));
+        const messagesSnapshot = await getDocs(messagesQuery);
+
+        const messages = messagesSnapshot.docs.map((msgDoc) => msgDoc.data());
+
+        convos.push({
+          recipient: conversationId,
+          messages,
+        });
+      }
+
+      setConversations(convos);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
   const toggleCampaignStatus = async () => {
     if (!user || !campaignData) return;
 
-    // Prevent starting the campaign if no usernames are collected
+    try {
+      const newStatus = isRunning ? 'paused' : 'running';
+      const campaignRef = doc(db, `users/${user.uid}/campaigns`, campaignId);
+
+      // Update the campaign status first
+      await updateDoc(campaignRef, { status: newStatus });
+
+      setIsRunning(!isRunning);
+      setCampaignData({ ...campaignData, status: newStatus });
+    } catch (error) {
+      console.error('Error updating campaign status:', error);
+      return; // Exit if we can't update the status
+    }
+
     if (!isRunning) {
+      // Prevent starting the campaign if no usernames are collected
       const anyUsernamesCollected = campaignData.subreddits.some(
         (subreddit) => subreddit.usernamesCollected
       );
@@ -90,18 +161,21 @@ export default function CampaignDashboard({
         alert('You need to collect at least one username before starting the campaign.');
         return;
       }
-    }
 
-    try {
-      const newStatus = isRunning ? 'paused' : 'running';
-      const campaignRef = doc(db, `users/${user.uid}/campaigns`, campaignId);
-
-      await updateDoc(campaignRef, { status: newStatus });
-
-      setIsRunning(!isRunning);
-      setCampaignData({ ...campaignData, status: newStatus });
-    } catch (error) {
-      console.error('Error updating campaign status:', error);
+      // Start the messaging process
+      try {
+        const token = await user.getIdToken();
+        await fetch('/api/startMessaging', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ campaignId }),
+        });
+      } catch (error) {
+        console.error('Error starting messaging:', error);
+      }
     }
   };
 
@@ -167,6 +241,59 @@ export default function CampaignDashboard({
   const canStartCampaign = campaignData?.subreddits.some(
     (subreddit) => subreddit.usernamesCollected
   );
+
+  // Fetch messages
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchMessages = async () => {
+      try {
+        const messagesRef = collection(db, `users/${user.uid}/messages`);
+        const messagesQuery = query(
+          messagesRef,
+          orderBy('createdUtc', 'desc'),
+          limit(20)
+        );
+
+        const querySnapshot = await getDocs(messagesQuery);
+        const messagesData = querySnapshot.docs.map((doc) => doc.data());
+        setMessages(messagesData);
+      } catch (error) {
+        console.error('Error fetching messages:', error);
+      }
+    };
+
+    fetchMessages();
+  }, [user]);
+
+  // Function to sync messages
+  const syncMessages = async () => {
+    try {
+      if (!user) return;
+
+      const token = await user.getIdToken();
+      await fetch('/api/syncMessages', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      // Fetch messages again after syncing
+      const messagesRef = collection(db, `users/${user.uid}/messages`);
+      const messagesQuery = query(
+        messagesRef,
+        orderBy('createdUtc', 'desc'),
+        limit(20)
+      );
+
+      const querySnapshot = await getDocs(messagesQuery);
+      const messagesData = querySnapshot.docs.map((doc) => doc.data());
+      setMessages(messagesData);
+    } catch (error) {
+      console.error('Error syncing messages:', error);
+    }
+  };
 
   if (!campaignData) {
     return <div className="text-white">Loading...</div>;
@@ -305,6 +432,8 @@ export default function CampaignDashboard({
                           <th className="pb-4 text-gray-400 font-medium">Messages</th>
                           <th className="pb-4 text-gray-400 font-medium">Replies</th>
                           <th className="pb-4 text-gray-400 font-medium">Rate</th>
+                          <th className="pb-4 text-gray-400 font-medium">Usernames</th>
+                          <th className="pb-4 text-gray-400 font-medium"></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -339,11 +468,18 @@ export default function CampaignDashboard({
                               </div>
                             </td>
                             <td className="py-4">
+                              {subreddit.usernamesCollected ? (
+                                <span>{subreddit.totalUsernames || 0} usernames</span>
+                              ) : (
+                                <span className="text-gray-400">Not collected</span>
+                              )}
+                            </td>
+                            <td className="py-4">
                               <Button
                                 size="sm"
                                 onClick={() => collectUsernames(subreddit.name)}
                               >
-                                Collect Usernames
+                                {subreddit.usernamesCollected ? 'Re-Collect' : 'Collect'} Usernames
                               </Button>
                             </td>
                           </tr>
@@ -423,6 +559,72 @@ export default function CampaignDashboard({
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Messages Section */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="bg-[#242526] rounded-xl border border-[#343536] p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold">Recent Messages</h2>
+                <Button onClick={syncMessages}>Sync Messages</Button>
+              </div>
+              <div className="space-y-4">
+                {messages.map((message) => (
+                  <div key={message.id} className="border-b border-[#343536] pb-4">
+                    <div className="flex items-center justify-between">
+                      <div className="text-gray-200">
+                        From: u/{message.author || 'Unknown'}
+                      </div>
+                      <div className="text-gray-400 text-sm">
+                        {new Date(message.createdUtc * 1000).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="mt-2 text-white whitespace-pre-wrap">
+                      {message.body}
+                    </div>
+                    {/* Reply Form */}
+                    <div className="mt-4">
+                      <form
+                        onSubmit={async (e) => {
+                          e.preventDefault();
+                          const form = e.target as HTMLFormElement;
+                          const replyText = form.reply.value;
+
+                          try {
+                            const token = await user?.getIdToken();
+                            await fetch('/api/replyMessage', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                Authorization: `Bearer ${token}`,
+                              },
+                              body: JSON.stringify({
+                                messageId: message.id,
+                                replyText,
+                              }),
+                            });
+
+                            alert('Reply sent');
+                            form.reset();
+                          } catch (error) {
+                            console.error('Error sending reply:', error);
+                          }
+                        }}
+                      >
+                        <textarea
+                          name="reply"
+                          className="w-full bg-[#1A1A1B] border border-[#343536] rounded-md p-2 text-white mt-2"
+                          placeholder="Write a reply..."
+                        />
+                        <Button type="submit" className="mt-2">
+                          Send Reply
+                        </Button>
+                      </form>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

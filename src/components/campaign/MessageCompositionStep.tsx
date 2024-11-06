@@ -1,13 +1,16 @@
 import React from 'react';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 interface MessageCompositionStepProps {
-  value: string;
-  onChange: (value: string) => void;
+  messageTemplate: string;
+  messageSubject: string;
+  onChange: (value: { messageTemplate: string; messageSubject: string }) => void;
 }
 
 export default function MessageCompositionStep({
-  value,
+  messageTemplate,
+  messageSubject,
   onChange,
 }: MessageCompositionStepProps) {
   return (
@@ -15,22 +18,39 @@ export default function MessageCompositionStep({
       <div>
         <h2 className="text-2xl font-bold text-white mb-2">Compose Your Message</h2>
         <p className="text-gray-400">
-          Write a personalized message that will be sent to potential customers.
+          Write a subject and a personalized message that will be sent to potential customers.
         </p>
       </div>
 
       <div className="space-y-4">
+        <div>
+          <Label htmlFor="subject" className="text-gray-200">
+            Message Subject
+          </Label>
+          <Input
+            id="subject"
+            value={messageSubject}
+            onChange={(e) =>
+              onChange({ messageTemplate, messageSubject: e.target.value })
+            }
+            placeholder="Enter the subject of your message..."
+            className="mt-2 bg-[#1A1A1B] border-[#343536] text-white placeholder:text-gray-500"
+          />
+        </div>
+
         <div>
           <Label htmlFor="message" className="text-gray-200">
             Message Template
           </Label>
           <textarea
             id="message"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="Hi {{username}},
+            value={messageTemplate}
+            onChange={(e) =>
+              onChange({ messageTemplate: e.target.value, messageSubject })
+            }
+            placeholder={`Hi {{username}},
 
-I noticed you're active in r/{{subreddit}} and thought you might be interested in..."
+I noticed you're active in r/{{subreddit}} and thought you might be interested in...`}
             className="mt-2 w-full h-48 px-3 py-2 bg-[#1A1A1B] border border-[#343536] rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-[#FF4500] focus:border-[#FF4500]"
           />
         </div>

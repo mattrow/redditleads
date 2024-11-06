@@ -7,6 +7,7 @@ export interface Subreddit {
     messagesSent: number;
     replies: number;
     usernamesCollected?: boolean; // Indicates if usernames have been collected
+    totalUsernames?: number; // Total usernames collected
   }
   
   export interface CampaignStats {
@@ -30,4 +31,5 @@ export interface Subreddit {
     lastActive: string;
     dailyLimit: number;
     messageTemplate: string;
+    messageSubject: string;
   }

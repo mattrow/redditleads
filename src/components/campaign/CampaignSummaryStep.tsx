@@ -51,6 +51,12 @@ export default function CampaignSummaryStep({
           </p>
         </div>
 
+        {/* Message Subject */}
+        <div className="bg-[#1A1A1B] rounded-lg p-4 border border-[#343536]">
+          <h3 className="text-sm font-medium text-gray-400 mb-2">Message Subject</h3>
+          <p className="text-white">{campaignData.messageSubject}</p>
+        </div>
+
         {/* Message Preview */}
         <div className="bg-[#1A1A1B] rounded-lg p-4 border border-[#343536]">
           <h3 className="text-sm font-medium text-gray-400 mb-2">Message Preview</h3>

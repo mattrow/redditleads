@@ -39,6 +39,7 @@ export default function NewCampaign() {
     lastActive: new Date().toISOString(),
     dailyLimit: 100,
     messageTemplate: '',
+    messageSubject: '',
   });
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -64,32 +65,24 @@ export default function NewCampaign() {
 
   const handleCreate = async () => {
     try {
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
+      if (!user) return;
 
-      // Reference to the user's campaigns collection
-      const campaignsRef = collection(db, `users/${user.uid}/campaigns`);
-
-      // Add the new campaign to Firestore
-      const campaignDocRef = await addDoc(campaignsRef, {
+      // Save campaign data to Firestore
+      const campaignsRef = collection(db, 'users', user.uid, 'campaigns');
+      const docRef = await addDoc(campaignsRef, {
         ...campaignData,
         createdAt: Date.now(),
       });
 
-      // Redirect to the new campaign's page
-      router.push(`/dashboard/campaign/${campaignDocRef.id}`);
+      router.push(`/dashboard/campaign/${docRef.id}`);
     } catch (error) {
       console.error('Error creating campaign:', error);
     }
   };
 
   // Update function with the correct type
-  const updateCampaignData = (data: Partial<CampaignData>) => {
-    setCampaignData((prevData) => ({
-      ...prevData,
-      ...data,
-    }));
+  const updateCampaignData = (newData: Partial<CampaignData>) => {
+    setCampaignData((prevData) => ({ ...prevData, ...newData }));
   };
 
   return (
@@ -146,8 +139,11 @@ export default function NewCampaign() {
           )}
           {currentStep === 3 && (
             <MessageCompositionStep
-              value={campaignData.messageTemplate}
-              onChange={(messageTemplate) => updateCampaignData({ messageTemplate })}
+              messageTemplate={campaignData.messageTemplate}
+              messageSubject={campaignData.messageSubject}
+              onChange={({ messageTemplate, messageSubject }) =>
+                updateCampaignData({ messageTemplate, messageSubject })
+              }
             />
           )}
           {currentStep === 4 && (
