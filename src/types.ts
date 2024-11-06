@@ -6,6 +6,7 @@ export interface Subreddit {
     replyRate: number;
     messagesSent: number;
     replies: number;
+    usernamesCollected?: boolean; // Indicates if usernames have been collected
   }
   
   export interface CampaignStats {
