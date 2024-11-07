@@ -56,19 +56,26 @@ export async function POST(req: NextRequest) {
       { merge: true }
     );
 
-    // Fetch top 1000 posts (specifying time to 'all')
-    console.log(`Fetching top posts from subreddit: ${subredditName}`);
+    // Fetch all posts using the recursive function
+    console.log(`Fetching all posts from subreddit: ${subredditName}`);
     const subreddit = reddit.getSubreddit(subredditName);
 
-    const topPosts = await subreddit.getTop({ limit: 1000, time: 'all' });
+    const afterTimestamp = 0; // Start from the beginning
+    const beforeTimestamp = Math.floor(Date.now() / 1000); // Current time in Unix timestamp
 
-    console.log(`Number of posts fetched: ${topPosts.length}`);
+    let allPosts: snoowrap.Submission[] = [];
 
+    console.log('Starting to fetch all posts...');
+    allPosts = await fetchAllPosts(subreddit, afterTimestamp, beforeTimestamp);
+
+    console.log(`Total posts fetched: ${allPosts.length}`);
+
+    // Create a set to store unique usernames
     const usernamesSet = new Set<string>();
 
     // Update totalPosts in progress
     await progressRef.update({
-      totalPosts: topPosts.length,
+      totalPosts: allPosts.length,
       lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
     });
 
@@ -86,9 +93,10 @@ export async function POST(req: NextRequest) {
 
     let processedPosts = 0;
 
-    for (const post of topPosts) {
+    // Process each post
+    for (const post of allPosts) {
       console.log(
-        `Processing post ${processedPosts + 1}/${topPosts.length}: ${post.title} (${post.id})`
+        `Processing post ${processedPosts + 1}/${allPosts.length}: ${post.title} (${post.id})`
       );
 
       if (post.author && post.author.name) {
@@ -111,7 +119,7 @@ export async function POST(req: NextRequest) {
       processedPosts++;
 
       // Update progress every 10 posts or on the last post
-      if (processedPosts % 10 === 0 || processedPosts === topPosts.length) {
+      if (processedPosts % 10 === 0 || processedPosts === allPosts.length) {
         await progressRef.update({
           processedPosts,
           collectedUsernames: usernamesSet.size,
@@ -212,4 +220,42 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+async function fetchAllPosts(
+  subreddit: snoowrap.Subreddit,
+  after: number,
+  before: number,
+  collectedPosts: snoowrap.Submission[] = [],
+): Promise<snoowrap.Submission[]> {
+  const MAX_LIMIT = 1000;
+  const MIN_TIME_INTERVAL = 1; // Minimum time interval in seconds to prevent infinite recursion
+
+  if (before - after < MIN_TIME_INTERVAL) {
+    return collectedPosts;
+  }
+
+  const searchOptions = {
+    query: `timestamp:${after}..${before}`,
+    syntax: 'cloudsearch',
+    limit: MAX_LIMIT,
+    sort: 'new',
+  };
+
+  const posts = await subreddit.search(searchOptions as snoowrap.BaseSearchOptions);
+  console.log(`Fetched ${posts.length} posts between ${after} and ${before}`);
+
+  if (posts.length >= MAX_LIMIT) {
+    // There might be more posts in this time range, split it further
+    const mid = Math.floor((after + before) / 2);
+    await fetchAllPosts(subreddit, after, mid, collectedPosts);
+    await fetchAllPosts(subreddit, mid + 1, before, collectedPosts);
+  } else {
+    collectedPosts.push(...posts);
+
+    // Optional: Introduce a delay to respect rate limits
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+  }
+
+  return collectedPosts;
 }

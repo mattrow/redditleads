@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Play,
@@ -74,6 +74,72 @@ export default function CampaignDashboard({
   const [messages, setMessages] = useState<any[]>([]);
 
   const [conversations, setConversations] = useState<any[]>([]);
+
+  // Add a ref to the file input and state for the subreddit
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadSubreddit, setUploadSubreddit] = useState<string | null>(null);
+
+  // Function to handle the Upload Usernames button click
+  const handleUploadUsernames = (subredditName: string) => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+      setUploadSubreddit(subredditName);
+    }
+  };
+
+  // Function to handle file input change
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !uploadSubreddit) return;
+
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      if (!user) return;
+
+      const token = await user.getIdToken();
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Make API call to upload usernames
+      const response = await fetch(`/api/uploadUsernames?campaignId=${campaignId}&subredditName=${uploadSubreddit}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert('Usernames uploaded successfully');
+
+        // Update the subreddit state to indicate usernames have been collected
+        setCampaignData((prevData) => {
+          if (!prevData) return prevData;
+
+          const updatedSubreddits = prevData.subreddits.map((sub) =>
+            sub.name === uploadSubreddit
+              ? { ...sub, usernamesCollected: true, totalUsernames: undefined }
+              : sub
+          );
+
+          return { ...prevData, subreddits: updatedSubreddits };
+        });
+      } else {
+        alert('Error uploading usernames: ' + result.error);
+      }
+
+    } catch (error) {
+      console.error('Error uploading usernames:', error);
+    } finally {
+      // Reset file input and subreddit state
+      e.target.value = '';
+      setUploadSubreddit(null);
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -475,12 +541,21 @@ export default function CampaignDashboard({
                               )}
                             </td>
                             <td className="py-4">
-                              <Button
-                                size="sm"
-                                onClick={() => collectUsernames(subreddit.name)}
-                              >
-                                {subreddit.usernamesCollected ? 'Re-Collect' : 'Collect'} Usernames
-                              </Button>
+                              <div className="flex space-x-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => collectUsernames(subreddit.name)}
+                                >
+                                  {subreddit.usernamesCollected ? 'Re-Collect' : 'Collect'} Usernames
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleUploadUsernames(subreddit.name)}
+                                >
+                                  Upload Usernames
+                                </Button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -675,6 +750,15 @@ export default function CampaignDashboard({
           </div>
         </Modal>
       )}
+
+      {/* Hidden file input */}
+      <input
+        type="file"
+        accept=".csv"
+        style={{ display: 'none' }}
+        ref={fileInputRef}
+        onChange={onFileChange}
+      />
     </>
   );
 } 

@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/startMessaging",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}
