@@ -91,8 +91,19 @@ export async function POST(req: NextRequest) {
 
           // Process each user
           for (const userDoc of usersSnap.docs) {
-            const username = userDoc.id;
+            // Retrieve the username from the document data
+            const username = userDoc.data().username;
             console.log(`Preparing to message user: ${username}`);
+
+            if (!username) {
+              console.error(`Username is missing for document ID: ${userDoc.id}`);
+              // Optionally, you can mark this document as attempted to prevent retrying
+              await userDoc.ref.update({
+                attempted: true,
+                lastAttemptedAt: admin.firestore.FieldValue.serverTimestamp(),
+              });
+              continue;
+            }
 
             // Replace placeholders in the message template and subject
             const renderedMessage = campaignData.messageTemplate
