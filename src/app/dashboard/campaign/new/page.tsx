@@ -64,6 +64,7 @@ export default function NewCampaign() {
   };
 
   const handleCreate = async () => {
+    console.log('handleCreate called');
     try {
       if (!user) return;
 
