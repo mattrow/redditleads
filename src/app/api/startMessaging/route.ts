@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import snoowrap from 'snoowrap';
 import { admin } from '@/firebase/admin';
 
-// Import necessary packages
-import { Firestore } from '@google-cloud/firestore';
-import { setTimeout } from 'timers/promises';
+// Import setTimeout from 'timers/promises'
+import { setTimeout } from 'node:timers/promises';
 
-export async function POST(req: NextRequest) {
+// Common handler function
+async function handler(req: NextRequest) {
   try {
     console.log('Received request to /api/startMessaging');
 
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
 
           console.log(
             `Users to message in ${subredditName}:`,
-            usersSnap.docs.map((doc) => doc.id)
+            usersSnap.docs.map((doc) => doc.data().username)
           );
 
           // Process each user
@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
               if (
                 error.message &&
                 error.message.includes('RATELIMIT') &&
-                error.message.includes('Try again in')
+                error.message.includes('Take a break for')
               ) {
                 // Extract the number of seconds to wait
                 const waitTimeInSeconds = parseRateLimitError(error.message);
@@ -197,7 +197,7 @@ export async function POST(req: NextRequest) {
             // Introduce a delay to comply with rate limit
             if (messagesSent < batchSize) {
               console.log(`Waiting for 1.2 seconds before next message...`);
-              await setTimeout((1200));
+              await setTimeout(1200);
             }
 
             // Check if batch size is reached
@@ -244,6 +244,16 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Handle GET requests
+export async function GET(req: NextRequest) {
+  return handler(req);
+}
+
+// Handle POST requests (if needed elsewhere)
+export async function POST(req: NextRequest) {
+  return handler(req);
 }
 
 // Function to parse wait time from rate limit error message
