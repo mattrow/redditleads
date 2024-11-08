@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import snoowrap from 'snoowrap';
 import { admin } from '@/firebase/admin';
 
+// Import necessary packages
+import { Firestore } from '@google-cloud/firestore';
+import { setTimeout } from 'timers/promises';
+
 export async function POST(req: NextRequest) {
   try {
     console.log('Received request to /api/startMessaging');
@@ -63,9 +67,7 @@ export async function POST(req: NextRequest) {
           const subredditName = subreddit.name;
           console.log('Processing subreddit:', subredditName);
 
-          const usersRef = usernamesRef
-            .doc(subredditName)
-            .collection('users');
+          const usersRef = usernamesRef.doc(subredditName).collection('users');
           console.log(`usersRef path: ${usersRef.path}`);
 
           // Query users who have not been attempted yet
@@ -86,7 +88,7 @@ export async function POST(req: NextRequest) {
 
           console.log(
             `Users to message in ${subredditName}:`,
-            usersSnap.docs.map(doc => doc.id)
+            usersSnap.docs.map((doc) => doc.id)
           );
 
           // Process each user
@@ -133,20 +135,69 @@ export async function POST(req: NextRequest) {
               });
 
               messagesSent++;
-            } catch (error) {
-              console.error(`Error messaging user ${username}:`, error);
+            } catch (error: any) {
+              // Check if the error is a rate limit error
+              if (
+                error.message &&
+                error.message.includes('RATELIMIT') &&
+                error.message.includes('Try again in')
+              ) {
+                // Extract the number of seconds to wait
+                const waitTimeInSeconds = parseRateLimitError(error.message);
 
-              // Update attempted status
-              await userDoc.ref.update({
-                attempted: true,
-                lastAttemptedAt: admin.firestore.FieldValue.serverTimestamp(),
-              });
+                console.warn(
+                  `Rate limit reached. Waiting for ${waitTimeInSeconds} seconds before retrying...`
+                );
+
+                // Wait for the specified time
+                await setTimeout((waitTimeInSeconds + 1) * 1000);
+
+                // Retry the message after waiting
+                try {
+                  await reddit.composeMessage({
+                    to: username,
+                    subject: renderedSubject,
+                    text: renderedMessage,
+                  });
+
+                  console.log(`Message sent to user after waiting: ${username}`);
+
+                  // Update user document
+                  await userDoc.ref.update({
+                    attempted: true,
+                    messaged: true,
+                    lastAttemptedAt: admin.firestore.FieldValue.serverTimestamp(),
+                    lastMessagedAt: admin.firestore.FieldValue.serverTimestamp(),
+                  });
+
+                  messagesSent++;
+                } catch (retryError) {
+                  console.error(
+                    `Error messaging user ${username} after waiting:`,
+                    retryError
+                  );
+
+                  // Update attempted status
+                  await userDoc.ref.update({
+                    attempted: true,
+                    lastAttemptedAt: admin.firestore.FieldValue.serverTimestamp(),
+                  });
+                }
+              } else {
+                console.error(`Error messaging user ${username}:`, error);
+
+                // Update attempted status
+                await userDoc.ref.update({
+                  attempted: true,
+                  lastAttemptedAt: admin.firestore.FieldValue.serverTimestamp(),
+                });
+              }
             }
 
             // Introduce a delay to comply with rate limit
             if (messagesSent < batchSize) {
               console.log(`Waiting for 1.2 seconds before next message...`);
-              await new Promise(resolve => setTimeout(resolve, 1200));
+              await setTimeout((1200));
             }
 
             // Check if batch size is reached
@@ -192,5 +243,27 @@ export async function POST(req: NextRequest) {
       { error: 'Error starting messaging' },
       { status: 500 }
     );
+  }
+}
+
+// Function to parse wait time from rate limit error message
+function parseRateLimitError(errorMessage: string): number {
+  // Error message format:
+  // "RATELIMIT: 'Looks like you've been doing that a lot. Take a break for X seconds before trying again.'"
+
+  const match = errorMessage.match(/Take a break for (\d+) (minutes|seconds)/);
+
+  if (match) {
+    let waitTime = parseInt(match[1], 10);
+    const unit = match[2];
+
+    if (unit === 'minutes') {
+      waitTime *= 60; // Convert minutes to seconds
+    }
+
+    return waitTime;
+  } else {
+    // Default wait time if unable to parse
+    return 60; // 1 minute
   }
 } 
